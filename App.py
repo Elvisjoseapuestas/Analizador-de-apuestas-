@@ -1,44 +1,36 @@
 import streamlit as st
+import pandas as pd
 
-st.set_page_config(page_title="Analizador Pro", layout="wide")
-st.title("⚽ Optimizador Pro: Goles y Córneres")
+st.set_page_config(page_title="Analizador Automático", layout="wide")
+st.title("⚽ Optimizador Pro: Analizador de Datos CSV")
 
-def analizar_todo(g_l, g_v, c_l, c_v, rat, cuo):
-    resultados = []
+# Paso 1: Cargar el archivo
+uploaded_file = st.sidebar.file_uploader("Sube tu archivo (CSV)", type="csv")
+
+if uploaded_file is not None:
+    # Leer el archivo
+    df = pd.read_csv(uploaded_file)
+    st.write("### Vista previa de tus datos")
+    st.dataframe(df.head())
     
-    # Análisis de Goles
-    promedio_g = (g_l + g_v) / 2
-    if promedio_g >= 2.5: resultados.append("🔥 Goles: Alta probabilidad Over 2.5")
-    else: resultados.append("⚽ Goles: Tendencia conservadora (Under 3.5)")
+    # Seleccionar partido
+    partido = st.selectbox("Elige el partido a analizar:", df['nombre_partido'])
+    datos = df[df['nombre_partido'] == partido].iloc[0]
     
-    # Análisis de Córneres (Nueva Lógica)
-    total_c = c_l + c_v
-    if total_c >= 9.5: resultados.append("🚩 Córneres: Alta probabilidad Over 8.5")
-    elif total_c >= 7.5: resultados.append("🚩 Córneres: Escenario estándar (Over 7.5)")
-    else: resultados.append("🛡️ Córneres: Partido cerrado/poca actividad")
+    # Análisis automático
+    st.subheader(f"Análisis para: {partido}")
     
-    # Análisis de Cuota/Valor
-    if cuo >= 1.7: resultados.append("💰 Cuota: Valor detectado")
+    # Reglas automáticas basadas en las columnas del CSV
+    goles_promedio = (datos['goles_local'] + datos['goles_visita']) / 2
+    corners_total = datos['corners_local'] + datos['corners_visita']
     
-    return resultados
-
-# Interfaz
-nombre = st.text_input("Nombre del Partido")
-col1, col2 = st.columns(2)
-
-st.subheader("Datos de Goles")
-g_l = col1.number_input("Goles Local", 0.0, 5.0, 1.5)
-g_v = col2.number_input("Goles Visita", 0.0, 5.0, 1.0)
-
-st.subheader("Datos de Córneres")
-c_l = col1.number_input("Córneres Local (promedio)", 0.0, 15.0, 5.0)
-c_v = col2.number_input("Córneres Visita (promedio)", 0.0, 15.0, 4.5)
-
-rat = st.slider("Rating Delantero", 5.0, 10.0, 7.0)
-cuo = st.number_input("Cuota", 1.0, 10.0, 1.6)
-
-if st.button("Generar Análisis Completo"):
-    res = analizar_todo(g_l, g_v, c_l, c_v, rat, cuo)
-    st.success(f"Resultados para: {nombre}")
-    for item in res:
-        st.markdown(f"- {item}")
+    # Resultados
+    if goles_promedio >= 2.5: st.success("✅ Goles: Alta probabilidad Over 2.5")
+    else: st.warning("⚽ Goles: Tendencia conservadora (Under 3.5)")
+        
+    if corners_total >= 9.5: st.success("✅ Córneres: Alta probabilidad Over 8.5")
+    else: st.warning("🚩 Córneres: Poca actividad esperada")
+        
+    st.info(f"Cuota sugerida basada en datos: {datos['cuota_referencia']}")
+else:
+    st.info("Por favor, sube un archivo CSV en el menú lateral para comenzar.")
